@@ -97,29 +97,42 @@ runcmd(struct cmd *cmd)
     runcmd(lcmd->right);
     break;
 
-  case PIPE:
-    pcmd = (struct pipecmd*)cmd;
-    if(pipe(p) < 0)
-      panic("pipe");
-    if(fork1() == 0){
-      close(1);
-      dup(p[1]);
-      close(p[0]);
-      close(p[1]);
-      runcmd(pcmd->left);
-    }
-    if(fork1() == 0){
-      close(0);
-      dup(p[0]);
-      close(p[0]);
-      close(p[1]);
-      runcmd(pcmd->right);
-    }
-    close(p[0]);
-    close(p[1]);
-    wait(0);
-    wait(0);
-    break;
+  // 把 pcmd->left 的输出作为 pcmd -> right 的输入。
+    case PIPE:
+        pcmd = (struct pipecmd *)cmd;
+        if (pipe(p) < 0)
+            panic("pipe");
+        // 创建子进程
+        if (fork1() == 0)
+        {   
+            // 把子进程中的文件描述符 1 (stdout) 关闭
+            close(1);
+            // 使用系统调用 dup(p[1])，这样可以把文件描述符 1 绑定到管道的输出 (也就是管道的输出替代了 stdout ) 
+            dup(p[1]);
+            // 将管道两端都关闭。这样就还是只剩下 0, 1, 2 三个文件描述符，但是此时 1 绑定的是管道。
+            /* 
+                关闭的原因：如果没有可用的数据，则管道上的 read 操作将会进入等待，直到有新数据写入或所有指向写入端的文件描述符都被关闭。 
+                read 在新数据到达前将会一直处于阻塞状态，如果没有关闭管道的写入端，则 pcmd->left 子进程中的文件描述符之一指向管道的写入端， pcmd->left 将永远看不到文件的结束。
+            */
+            close(p[0]);
+            close(p[1]);
+            // 然后调用 exec 执行子程序即可。
+            runcmd(pcmd->left);
+        }
+        // 同上。只不过右边绑定的是输入 (stdin)。
+        if (fork1() == 0)
+        {
+            close(0);
+            dup(p[0]);
+            close(p[0]);
+            close(p[1]);
+            runcmd(pcmd->right);
+        }
+        close(p[0]);
+        close(p[1]);
+        wait(0);
+        wait(0);
+        break;
 
   case BACK:
     bcmd = (struct backcmd*)cmd;
