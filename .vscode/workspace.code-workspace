@@ -1,0 +1,54 @@
+{
+	"folders": [
+		{
+			"path": "D:\\Desktop\\编译原理实验\\Lab2"
+		},
+		{
+			"path": "D:\\Documents\\python"
+		},
+		{
+			"path": "D:\\Documents\\C"
+		},
+		{
+			"path": "D:\\Documents\\ReportGen"
+		},
+		{
+			"path": "D:\\Documents\\report_generation_amia2022-master"
+		},
+		{
+			"path": "D:\\Desktop\\多核\\作业二"
+		},
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"charconv": "cpp",
+			"filesystem": "cpp",
+			"array": "cpp",
+			"bitset": "cpp",
+			"string_view": "cpp",
+			"initializer_list": "cpp",
+			"regex": "cpp",
+			"utility": "cpp",
+			"valarray": "cpp",
+			"deque": "cpp",
+			"format": "cpp",
+			"list": "cpp",
+			"queue": "cpp",
+			"random": "cpp",
+			"stack": "cpp",
+			"type_traits": "cpp",
+			"vector": "cpp",
+			"xhash": "cpp",
+			"xstring": "cpp",
+			"xtree": "cpp",
+			"xutility": "cpp",
+			"ratio": "cpp",
+			"*.tcc": "c",
+			"ostream": "c",
+			"istream": "c"
+		}
+	}
+}
