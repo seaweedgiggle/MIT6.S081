@@ -10,7 +10,7 @@ enum state {
     S_ARG_END,
     S_ARG_LINE_END,      // 左侧为参数的换行，如 "arg\n"
     S_LINE_END,          // 左侧为空格的换行，如 "arg  \n"
-    S_END                // 结束
+    S_END                // 结束 (其实这个没啥用)
 };
 
 enum char_type {
@@ -32,6 +32,7 @@ enum char_type getCharType(char c) {
 }
 
 // 状态转移函数
+// 需要画出 DFA，然后填上去即可。
 enum state stateTransition(enum state curr, enum char_type c) {
     switch(curr) {
         case S_WAIT:
@@ -58,6 +59,11 @@ enum state stateTransition(enum state curr, enum char_type c) {
 
 }
 
+/**
+ * echo hello \n too | xargs echo bye
+ *  例如这个命令，实际上执行的是 echo bye hello 与 echo bye too 两条命令。
+ *  所以需要在 xargv 数组中保留 echo bye (也就是一开始的 argv)，把后面的全部清零，再读入后面的命令。
+ */
 void memreset(char* xargv[MAXARG], int args_num) {
     for (int i = 0; i < args_num; i++) {
         xargv[i] = 0;
