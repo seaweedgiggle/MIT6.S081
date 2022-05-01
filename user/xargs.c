@@ -95,16 +95,17 @@ int main(int argc, char* argv[]) {
                 char_num++;
                 break;
             case S_ARG_END:
+                // 当到达代表参数结束的状态时候，这个时候字符一定是 ' ' 或 '\n'。
+                // 所以可以用 '\0' 去替换掉这个字符，然后直接将 line 中的起始地址复制进 xargv[args_id] 中。
+                // 这样就不用对参数的末尾进行特殊处理了。
                 *cur = '\0';
                 xargv[args_id++] = line + arg_begin;
-                // printf("%s\n", xargv[args_id-1]);
                 arg_begin += char_num + 1;
                 char_num = 0;
                 break;
             case S_ARG_LINE_END:
                 *cur = '\0';
                 xargv[args_id++] = line + arg_begin;
-                // printf("%s\n", xargv[args_id-1]);
                 // 这里不用 break
             case S_LINE_END:
                 char_num = 0;
