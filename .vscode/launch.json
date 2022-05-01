@@ -22,8 +22,8 @@
                 }
             ],
             "logging": {
-                "engineLogging": true,
-                "programOutput": true,
+                // "engineLogging": true,
+                // "programOutput": true,
             }
         }
     ]
