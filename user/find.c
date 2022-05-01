@@ -17,6 +17,17 @@
     };
  */
 
+/**
+Directory is a file containing a sequence of dirent structures.
+    #define DIRSIZ 14
+
+    struct dirent {
+        ushort inum;
+        char name[DIRSIZ];
+    };
+*/
+   
+
 void find(char *path, char* str)
 {
     char buf[512], *p;
@@ -47,34 +58,29 @@ void find(char *path, char* str)
         printf("find: path too long\n");
         exit(1);
     }
+    // 把当前指针 p 定位到输入路径的末尾，并加上斜杠
     strcpy(buf, path);
     p = buf + strlen(buf);
     *p++ = '/';
-    /**
-    Directory is a file containing a sequence of dirent structures.
-        #define DIRSIZ 14
-
-        struct dirent {
-            ushort inum;
-            char name[DIRSIZ];
-        };
-
-    */
     // 把目录中的内容一个个读出来，存到 p 里边（长度是 DIRSIZ）
     while (read(fd, &de, sizeof(de)) == sizeof(de))
     {
         if (de.inum == 0)
             continue;
+        // 为 p 加上文件名。
         memmove(p, de.name, DIRSIZ);
-        p[DIRSIZ] = 0;
+        p[DIRSIZ] = '\0';
+
         if (stat(buf, &st) < 0)
         {
             printf("find: cannot stat %s\n", buf);
             continue;
         }
+        // 如果当前目录的这个项是个文件，若匹配则打印。
         if (st.type == T_FILE && strcmp(p, str) == 0) {
             printf("%s\n", buf);
         }
+        // 如果当前目录的这个项是个目录，递归调用。（注意 "." 和 ".." 这两个目录也是在路径下的，所以不能对这两个目录进行递归）
         else if (st.type == T_DIR && strcmp(p, ".") != 0 && strcmp(p, "..") != 0) {
             find(buf, str);
         }
