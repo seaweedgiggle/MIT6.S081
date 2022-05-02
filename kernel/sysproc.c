@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -110,12 +111,45 @@ uint64 sys_trace(void) {
 }
 
 // lab2 exercise2
-uint64 sys_syscall(void) {
+
+/**
+ *   1. 从寄存器 a0 获取 sysinfo 系统调用中参数：一个指向 struct sysinfo 的指针。
+ *   2. 内核填写结果的信息，包括 freemem 和 nproc.
+ *   3. 将 sysinfo 的信息从内核中复制回用户空间。（使用 copyout(). ）
+ */
+uint64 sys_info(void) {
     // 通过寄存器 a0 获取地址
     uint64 addr;
-    if (argaddr(0, addr) < 0) {
+    if (argaddr(0, &addr) < 0) {
         return -1;
     }
-    // TODO
     
+    // 填写信息
+    struct sysinfo info;
+    count_free_memory(&info.freemem);
+    count_active_proc(&info.nproc);
+
+    // 写入
+    struct proc* p = myproc();
+    if (copyout(p->pagetable, addr, (char*)&info, sizeof(info))){
+        return -1;
+    }
+    return 0;
 }
+
+// 如果是这种实现方式，则会出现 usertrap.
+
+// uint64 sys_info(void) {
+//     // 通过寄存器 a0 获取地址
+//     uint64 addr;
+//     if (argaddr(0, &addr) < 0) {
+//         return -1;
+//     }
+    
+//     // 填写信息
+//     struct sysinfo* info = (struct sysinfo*)addr;
+//     count_free_memory(&info->freemem);
+//     count_active_proc(&info->nproc);
+
+//     return 0;
+// }
