@@ -140,13 +140,14 @@ void syscall(void)
 {
     int num;
     struct proc *p = myproc();
-
+    // RISC V 约定将系统调用号放置在 a7 寄存器中
     num = p->trapframe->a7;
     if (num > 0 && num < NELEM(syscalls) && syscalls[num])
     {
         // 约定将系统调用的返回值保存在 a0 中。
         p->trapframe->a0 = syscalls[num]();
-        // for trace
+
+        // 如果这个系统调用号存在于 trace 的参数中，则打印它的信息
         if ((p->trace_arg >> num) & 1) {
             printf("%d: syscall %s -> %d\n", p->pid, name[num], p->trapframe->a0);
         }

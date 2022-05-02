@@ -99,13 +99,15 @@ sys_uptime(void)
     return xticks;
 }
 
-// lab2 exercise1
+// lab2 trace
 uint64 sys_trace(void) {
     int i;
-    // 通过寄存器 a0 获取参数
+    // RISC V 约定将系统调用号放置在 a7 寄存器中
+    // 通过寄存器 a0 获取参数。
     if (argint(0, &i) < 0) {
         return -1;
     }
+    // 将进程的 trace 参数设置好
     myproc()->trace_arg = i;
     return 0;
 }
