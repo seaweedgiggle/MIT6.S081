@@ -5,6 +5,8 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
+#include "spinlock.h"
+#include "proc.h"
 
 /*
  * the kernel's page table.
@@ -50,6 +52,50 @@ void kvminit()
     // the highest virtual address in the kernel.
     kvmmap(TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
 }
+
+// exercise 2：为每个用户态进程创建内核页表
+
+void uvmmap(pagetable_t pagetable, uint64 va, uint64 pa, uint64 sz, int perm) {
+    if (mappages(pagetable, va, sz, pa, perm) != 0) {
+        printf("panic: size = %d\n", sz);
+        panic("uvmmap");
+    }
+}
+
+pagetable_t user_kvminit() {
+    // 分配根页表空间
+    pagetable_t kpagetable = kalloc();
+    if (kpagetable == 0) {
+        panic("user_kvminit");
+    }
+    memset(kpagetable, 0, PGSIZE);
+
+    // 将 kernel 的虚拟空间映射到物理空间，下边包括了各种 IO 设备
+    // uart registers
+    uvmmap(kpagetable, UART0, UART0, PGSIZE, PTE_R | PTE_W);
+
+    // virtio mmio disk interface
+    uvmmap(kpagetable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+
+    // CLINT
+    uvmmap(kpagetable, CLINT, CLINT, 0x10000, PTE_R | PTE_W);
+
+    // PLIC
+    uvmmap(kpagetable, PLIC, PLIC, 0x400000, PTE_R | PTE_W);
+
+    // map kernel text executable and read-only.
+    uvmmap(kpagetable, KERNBASE, KERNBASE, (uint64)etext - KERNBASE, PTE_R | PTE_X);
+
+    // map kernel data and the physical RAM we'll make use of.
+    uvmmap(kpagetable, (uint64)etext, (uint64)etext, PHYSTOP - (uint64)etext, PTE_R | PTE_W);
+
+    // map the trampoline for trap entry/exit to
+    // the highest virtual address in the kernel.
+    uvmmap(kpagetable, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
+
+    return kpagetable;
+}
+
 
 // Switch h/w page table register to the kernel's page table,
 // and enable paging.
@@ -151,8 +197,10 @@ kvmpa(uint64 va)
     uint64 off = va % PGSIZE;
     pte_t *pte;
     uint64 pa;
-
-    pte = walk(kernel_pagetable, va, 0);
+    
+    // Q：这里为什么要换？？？
+    struct proc *p = myproc();
+    pte = walk(p->k_pagetable, va, 0);
     if (pte == 0)
         panic("kvmpa");
     if ((*pte & PTE_V) == 0)
@@ -177,7 +225,7 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
         // 先通过 walk 取出 va 所对应的页表项
         if ((pte = walk(pagetable, a, 1)) == 0)
             return -1;
-        // 如果页表项存在且有效，则出现重映射错误。
+        // 如果页表项有效，则出现重映射错误（已经把一个虚拟地址映射到物理地址了，还要把这个虚拟地址再映射到另一个物理地址）。
         if (*pte & PTE_V)
             panic("remap");
         // 写页表项。
@@ -314,6 +362,8 @@ void freewalk(pagetable_t pagetable)
             freewalk((pagetable_t)child);
             pagetable[i] = 0;
         }
+        // 如果这个页表项有效，且 可读 / 可写 / 可执行。则说明这是最后一级页表（非页目录）.
+        // 但此时页表项应该全为 0. 所以如果不为 0, 则报错.
         else if (pte & PTE_V)
         {
             panic("freewalk: leaf");
@@ -325,7 +375,9 @@ void freewalk(pagetable_t pagetable)
 // Free user memory pages,
 // then free page-table pages.
 void uvmfree(pagetable_t pagetable, uint64 sz)
-{
+{   
+    // 把这个进程占用的物理空间全部 free 掉。
+    // Q：进程的虚拟地址就是从 0 开始 到 p->size 的吗？
     if (sz > 0)
         uvmunmap(pagetable, 0, PGROUNDUP(sz) / PGSIZE, 1);
     freewalk(pagetable);

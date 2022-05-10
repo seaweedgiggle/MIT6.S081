@@ -174,6 +174,7 @@ int             uvmcopy(pagetable_t, pagetable_t, uint64);
 void            uvmfree(pagetable_t, uint64);
 void            uvmunmap(pagetable_t, uint64, uint64, int);
 void            uvmclear(pagetable_t, uint64);
+pte_t          *walk(pagetable_t, uint64, int);
 uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
@@ -227,3 +228,8 @@ void            sockrecvudp(struct mbuf*, uint32, uint16, uint16);
 // exer 1
 void vmprint(pagetable_t);
 void vmprint_level(pagetable_t, int);
+
+// exercise 2
+pagetable_t user_kvminit();
+void uvmmap(pagetable_t pagetable, uint64 va, uint64 sz, uint64 pa, int perm);
+void k_freewalk(pagetable_t);
