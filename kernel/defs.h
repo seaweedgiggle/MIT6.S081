@@ -233,3 +233,8 @@ void vmprint_level(pagetable_t, int);
 pagetable_t user_kvminit();
 void uvmmap(pagetable_t pagetable, uint64 va, uint64 sz, uint64 pa, int perm);
 void k_freewalk(pagetable_t);
+
+// exercise 3
+void copypagetable(pagetable_t, pagetable_t, uint64, uint64);
+int copyin_new(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len);
+int copyinstr_new(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max);

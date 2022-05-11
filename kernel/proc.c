@@ -289,6 +289,8 @@ void userinit(void)
     // allocate one user page and copy init's instructions
     // and data into it.
     uvminit(p->pagetable, initcode, sizeof(initcode));
+    // 复制内核栈
+    copypagetable(p->pagetable, p->k_pagetable, 0, sizeof(initcode));
     p->sz = PGSIZE;
 
     // prepare for the very first "return" from kernel to user.
@@ -309,18 +311,27 @@ int growproc(int n)
 {
     uint sz;
     struct proc *p = myproc();
-
     sz = p->sz;
+    // 限制
+    if (sz + n >= PLIC) {
+        return -1;
+    }
+
     if (n > 0)
     {
         if ((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0)
         {
             return -1;
         }
+        copypagetable(p->pagetable, p->k_pagetable, sz - n, sz);
     }
+
     else if (n < 0)
-    {
+    {   
+        // 这个调用是不是有问题啊。。。为什么 newsize > oldsize uvmdealloc 不是会直接返回？我不理解
+        // 妈的我是傻逼    n < 0
         sz = uvmdealloc(p->pagetable, sz, sz + n);
+        copypagetable(p->pagetable, p->k_pagetable, sz, sz - n);
     }
     p->sz = sz;
     return 0;
@@ -347,6 +358,11 @@ int fork(void)
         release(&np->lock);
         return -1;
     }
+
+    // 复制内核栈.
+    // 为什么这里将 p->k_pagetable 复制给 np->k_pagetable 就不行？？？
+    copypagetable(np->pagetable, np->k_pagetable, 0, p->sz);
+
     np->sz = p->sz;
 
     np->parent = p;

@@ -420,6 +420,29 @@ err:
     return -1;
 }
 
+void copypagetable(pagetable_t pagetable, pagetable_t k_pagetable, uint64 oldsize, uint64 newsize) {
+
+    if (oldsize >= newsize) {
+        return ;
+    }
+    uint64 va = PGROUNDUP(oldsize);
+    pte_t *pte_from;
+    pte_t *pte_to;
+    for (uint64 i = va; i < newsize; i += PGSIZE) {
+        pte_from = walk(pagetable, i, 0);
+        pte_to = walk(k_pagetable, i, 1);
+        if (pte_from == 0) {
+            panic("copypagetable");
+        }
+        if (pte_to == 0) {
+            panic("walk failed");
+        }
+        uint64 pa = PTE2PA(*pte_from);
+        *pte_to = PA2PTE(pa) | (PTE_FLAGS(*pte_from) & (~PTE_U));
+    }
+}
+
+
 // mark a PTE invalid for user access.
 // used by exec for the user stack guard page.
 void uvmclear(pagetable_t pagetable, uint64 va)
@@ -462,24 +485,25 @@ int copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 // Return 0 on success, -1 on error.
 int copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 {
-    uint64 n, va0, pa0;
+    // uint64 n, va0, pa0;
 
-    while (len > 0)
-    {
-        va0 = PGROUNDDOWN(srcva);
-        pa0 = walkaddr(pagetable, va0);
-        if (pa0 == 0)
-            return -1;
-        n = PGSIZE - (srcva - va0);
-        if (n > len)
-            n = len;
-        memmove(dst, (void *)(pa0 + (srcva - va0)), n);
+    // while (len > 0)
+    // {
+    //     va0 = PGROUNDDOWN(srcva);
+    //     pa0 = walkaddr(pagetable, va0);
+    //     if (pa0 == 0)
+    //         return -1;
+    //     n = PGSIZE - (srcva - va0);
+    //     if (n > len)
+    //         n = len;
+    //     memmove(dst, (void *)(pa0 + (srcva - va0)), n);
 
-        len -= n;
-        dst += n;
-        srcva = va0 + PGSIZE;
-    }
-    return 0;
+    //     len -= n;
+    //     dst += n;
+    //     srcva = va0 + PGSIZE;
+    // }
+    // return 0;
+    return copyin_new(pagetable, dst, srcva, len);
 }
 
 // Copy a null-terminated string from user to kernel.
@@ -488,48 +512,49 @@ int copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 // Return 0 on success, -1 on error.
 int copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 {
-    uint64 n, va0, pa0;
-    int got_null = 0;
+    // uint64 n, va0, pa0;
+    // int got_null = 0;
 
-    while (got_null == 0 && max > 0)
-    {
-        va0 = PGROUNDDOWN(srcva);
-        pa0 = walkaddr(pagetable, va0);
-        if (pa0 == 0)
-            return -1;
-        n = PGSIZE - (srcva - va0);
-        if (n > max)
-            n = max;
+    // while (got_null == 0 && max > 0)
+    // {
+    //     va0 = PGROUNDDOWN(srcva);
+    //     pa0 = walkaddr(pagetable, va0);
+    //     if (pa0 == 0)
+    //         return -1;
+    //     n = PGSIZE - (srcva - va0);
+    //     if (n > max)
+    //         n = max;
 
-        char *p = (char *)(pa0 + (srcva - va0));
-        while (n > 0)
-        {
-            if (*p == '\0')
-            {
-                *dst = '\0';
-                got_null = 1;
-                break;
-            }
-            else
-            {
-                *dst = *p;
-            }
-            --n;
-            --max;
-            p++;
-            dst++;
-        }
+    //     char *p = (char *)(pa0 + (srcva - va0));
+    //     while (n > 0)
+    //     {
+    //         if (*p == '\0')
+    //         {
+    //             *dst = '\0';
+    //             got_null = 1;
+    //             break;
+    //         }
+    //         else
+    //         {
+    //             *dst = *p;
+    //         }
+    //         --n;
+    //         --max;
+    //         p++;
+    //         dst++;
+    //     }
 
-        srcva = va0 + PGSIZE;
-    }
-    if (got_null)
-    {
-        return 0;
-    }
-    else
-    {
-        return -1;
-    }
+    //     srcva = va0 + PGSIZE;
+    // }
+    // if (got_null)
+    // {
+    //     return 0;
+    // }
+    // else
+    // {
+    //     return -1;
+    // }
+    return copyinstr_new(pagetable, dst, srcva, max);
 }
 
 // 递归打印页表信息 
