@@ -361,6 +361,8 @@ int fork(void)
 
     // 复制内核页表。
     // 为什么这里将 p->k_pagetable 复制给 np->k_pagetable 就不行？？？
+    // 淦。我知道了。因为在 uvmcopy() 里 np->pagetable 是分配了新的物理空间的，将 p->pagetable 的物理内存的内容复制了一份。
+    // 所以要将 np->pagetable 复制给 np->k_pagetable，而不是 p->k_pagetable.
     copypagetable(np->pagetable, np->k_pagetable, 0, p->sz);
 
     np->sz = p->sz;
