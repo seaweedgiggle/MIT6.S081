@@ -289,7 +289,7 @@ void userinit(void)
     // allocate one user page and copy init's instructions
     // and data into it.
     uvminit(p->pagetable, initcode, sizeof(initcode));
-    // 复制内核栈
+    // 复制内核页表
     copypagetable(p->pagetable, p->k_pagetable, 0, sizeof(initcode));
     p->sz = PGSIZE;
 
@@ -359,7 +359,7 @@ int fork(void)
         return -1;
     }
 
-    // 复制内核栈.
+    // 复制内核页表。
     // 为什么这里将 p->k_pagetable 复制给 np->k_pagetable 就不行？？？
     copypagetable(np->pagetable, np->k_pagetable, 0, p->sz);
 

@@ -421,15 +421,19 @@ err:
 }
 
 void copypagetable(pagetable_t pagetable, pagetable_t k_pagetable, uint64 oldsize, uint64 newsize) {
-
+    // 只复制，不删除
     if (oldsize >= newsize) {
         return ;
     }
+    // 不足一页的地址要向上取整成一页（虚拟地址从 0 开始）
     uint64 va = PGROUNDUP(oldsize);
     pte_t *pte_from;
     pte_t *pte_to;
+    // 复制新的页表项到内核页表中
     for (uint64 i = va; i < newsize; i += PGSIZE) {
+        // 找到用户页表中 va 的页表项
         pte_from = walk(pagetable, i, 0);
+        // 找到内核页表中 va 的页表项。注意，如果没有页表项，则要创建，所以 walk 的第三个参数是 1.
         pte_to = walk(k_pagetable, i, 1);
         if (pte_from == 0) {
             panic("copypagetable");
@@ -438,6 +442,7 @@ void copypagetable(pagetable_t pagetable, pagetable_t k_pagetable, uint64 oldsiz
             panic("walk failed");
         }
         uint64 pa = PTE2PA(*pte_from);
+        // 复制页表项。但是注意，要把 PTE_U 位设为 0（通过 &(~PTE_U) ）。
         *pte_to = PA2PTE(pa) | (PTE_FLAGS(*pte_from) & (~PTE_U));
     }
 }

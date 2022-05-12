@@ -121,7 +121,7 @@ int exec(char *path, char **argv)
     {
         vmprint(p->pagetable);
     }
-    // 复制内核栈
+    // 复制内核页表
     copypagetable(p->pagetable, p->k_pagetable, 0, p->sz);
     return argc; // this ends up in a0, the first argument to main(argc, argv)
 
